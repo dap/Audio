@@ -1,0 +1,17 @@
+This is the beginings of Audio manipulation routines for perl.
+
+Currently can load or save Sun/Next .au/.snd files and play them 
+via Network Audio Server (from ftp.x.org) or native /dev/audio
+on Suns.
+
+There is an attempt at a NeXT driver as well but I have no way of testing it.
+
+Copyright (c) 1996 Nick Ing-Simmons. All rights reserved.
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+Three trivial "applications" are included : 
+
+   pplay example.au  # play .au files
+   morse perl5       # sound out string in morse code
+   dial  123456      # sound touchtone dial tones

@@ -1,0 +1,10 @@
+Audio\.c
+%$
+\.tar\.
+\.(o|a|bak|old|bs|\.tar.gz)$
+\b(blib|Testers)\b
+(\w+)/\1\.c$
+Makefile$
+pm_to_blib$
+out.*\.au$
+Play/solaris

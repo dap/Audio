@@ -1,0 +1,18 @@
+#!/usr/local/bin/perl -w
+use strict;
+use Audio::Data;
+use Audio::Play;
+use IO::File;
+
+my $svr = Audio::Play->new;
+
+my $name;
+foreach $name (@ARGV)
+ {
+  my $fh = new IO::File "<$name" or die "Cannot open $name:$!";
+  my $au = Audio::Data->new(Load => $fh);
+  print "$name @ ",$au->rate,"Hz\n";
+  $fh->close;
+  $au->rate($svr->rate) if ($au->rate != $svr->rate);
+  $svr->play($au);
+ }
