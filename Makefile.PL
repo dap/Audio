@@ -2,7 +2,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
     'NAME'     => 'Audio',
-    'EXE_FILES' => ['morse'],
+    'EXE_FILES' => [qw(morse pplay dial)],
     'clean' => {FILES => "*% *.bak Base/*% out*.au"},
     'linkext' => { LINKTYPE => ''},
 #   'OBJECT'   => '$(O_FILES)',

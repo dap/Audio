@@ -6,6 +6,7 @@ use IO::File;
 print "1..2\n";
 
 my $fh = IO::File->new("<t/test.au") or die "Cannot open test.au:$!";
+binmode($fh);
 my $au = new Audio::Data;
 $au->Load($fh);
 $fh->close;

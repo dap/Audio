@@ -5,7 +5,7 @@ require 5.00302;
 
 require DynaLoader;
 @ISA = qw(DynaLoader);
-$VERSION = "0.003";
+$VERSION = "0.004";
 
 bootstrap Audio::Data $VERSION;
 

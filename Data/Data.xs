@@ -41,7 +41,7 @@ Audio_tone(Audio *au, float freq, float dur, float amp)
  unsigned samp = (int) (dur * au->rate);
  float *buf = Audio_more(au, samp);
  double th  = 0.0;
- double inc = 2*M_PI*freq/au->rate;
+ double inc = 2*AUDIO_PI*freq/au->rate;
  while (samp > 0)
   {
    *buf++ = amp * sin(th);

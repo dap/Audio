@@ -22,6 +22,7 @@ my $digit;
 for $digit (0..9)
  {
   my $fh = IO::File->new(Audio::Data->findINC("touchtone.$digit.au"));
+  binmode($fh);
   $digit[$digit] = Audio::Data->new(Load => $fh);
   $fh->close;
  }

@@ -120,7 +120,9 @@ long au_size;
  if (here >= 0)
   {
    /* can seek this file - truncate it */
+#ifndef WIN32
    ftruncate(PerlIO_fileno(f), here);
+#endif
    /* Now go back and overwite header with actual size */
    if (PerlIO_seek(f, 8L, SEEK_SET) == 8)
     {

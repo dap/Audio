@@ -556,7 +556,7 @@ unsigned char *_l2u = _l2u_ + 4096;
 short *_u2l = _u2l_;
 
 static inline long 
-max(int bits)
+Max(int bits)
 {
  static long maxval[64];
  if (!maxval[bits])
@@ -571,7 +571,7 @@ int bits;
 {
  int shift = (8*sizeof(long)-bits);
  float f   = (l << shift) >> shift;
- return f / max(bits);
+ return f / Max(bits);
 }
 
 long
@@ -579,7 +579,7 @@ float2linear(f,bits)
 float f;
 int bits;
 {
- long n = max(bits);
+ long n = Max(bits);
  f *= n--;
  if (f > n)
   f = n;

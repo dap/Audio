@@ -10,6 +10,10 @@ typedef struct
 #define InputStream PerlIO *
 #define OutputStream PerlIO *
 
+#ifndef AUDIO_PI
+#define	AUDIO_PI 3.14159265358979323846
+#endif
+
 #define Audio_samples(au) (SvCUR((au)->data)/sizeof(float))
 #define Audio_duration(au) ((float) Audio_samples(au)/(au)->rate)
 #define Audio_silence(au,t) Audio_more(au,(int) (t*(au)->rate))

@@ -31,6 +31,7 @@ else
   warn "Cannot build Audio::Play::Net - NAS not present\n";
   open(M,">Makefile") || die "Cannot open Makefile:$!";
   print M "# Dummy Makefile\nall :\n\nclean :\n\trm -f Makefile\n";
+  print M "test :\n\t\@echo \"Audio::Play::Net not built\"\n";
   close(M);
  }
 

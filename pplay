@@ -10,6 +10,7 @@ my $name;
 foreach $name (@ARGV)
  {
   my $fh = new IO::File "<$name" or die "Cannot open $name:$!";
+  binmode($fh);
   my $au = Audio::Data->new(Load => $fh);
   print "$name @ ",$au->rate,"Hz\n";
   $fh->close;

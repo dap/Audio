@@ -3,8 +3,11 @@ Audio\.c
 \.tar\.
 \.(o|a|bak|old|bs|\.tar.gz)$
 \b(blib|Testers)\b
+\bdll\.(exp|base)$
 (\w+)/\1\.c$
 Makefile$
 pm_to_blib$
 out.*\.au$
 Play/solaris
+Play/MSWin32
+Data/Data.def

@@ -1,3 +1,4 @@
+COPYING
 Data/Audio.h
 Data/Audio.m
 Data/Audio.t
@@ -42,12 +43,15 @@ Play/config/generic.pm
 Play/config/hpux.xs
 Play/config/linux.cfg
 Play/config/linux.xs
+Play/config/mmsystem.h
 Play/config/net.xs
 Play/config/next.cfg
 Play/config/next.xs
 Play/config/sgi.xs
 Play/config/sun.cfg
 Play/config/sun.xs
+Play/config/win32.cfg
+Play/config/win32.xs
 Play/t/tone.t
 README
 README.Porting

@@ -164,7 +164,7 @@ Audio_lowpass(Audio * au, float freq)
 {
  float *buf = (float *) SvPVX(au->data);
  float *end = buf + Audio_samples(au);
- float A = (M_PI * 2.0 * freq) / au->rate;
+ float A = (AUDIO_PI * 2.0 * freq) / au->rate;
  float B = exp(-A / au->rate);
  float in1 = 0.0;
  if (freq > au->rate * 2)
@@ -201,7 +201,7 @@ Audio_highpass(Audio * au, float freq)
 {
  float *buf = (float *) SvPVX(au->data);
  float *end = buf + Audio_samples(au);
- float A = (M_PI * 2.0 * freq) / au->rate;
+ float A = (AUDIO_PI * 2.0 * freq) / au->rate;
  float B = exp(-A / au->rate);
  float in1 = 0.0;
  float out1 = 0.0;

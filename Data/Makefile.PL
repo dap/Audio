@@ -14,6 +14,7 @@ sub MY::postamble
 Audio.t : Audio.h  mkVFunc
 
 config :: Audio.t 
+	@$(NOOP)
 ';
 }
 

@@ -37,7 +37,7 @@ sub translate_osname
  close(SRC);
  push(@clean,$dst);
  push(@deps,"$dst : $src\n\t\$(PERL) -pe 's/#OSNAME#/$^O/g' $src > $dst\n");
- push(@deps,"config :: $dst\n");
+ push(@deps,"config :: $dst\n\t\$(NOOP)\n");
 }
 
 my $driver = 'dummy';
@@ -56,13 +56,17 @@ foreach ($^O)
    {
     $driver = 'hpux';
    }
-  elsif (/^sgi$/i)
+  elsif (/^irix$/i)
    {
     $driver = 'sgi';
    }
   elsif (/^next$/i)
    {
     $driver = 'next';
+   }
+  elsif (/^MSWin32$/i)
+   {
+    $driver = 'win32';
    }
  }
 
