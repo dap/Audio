@@ -29,7 +29,7 @@ rblong(pTHX_ PerlIO *f,int n)
  for (i=0; i < n; i++)
   {
    long b = PerlIO_getc(f);
-   x = (x <<= 8) + (b & 0xFF);
+   x = (x << 8) + (b & 0xFF);
   }
  return x;
 }
@@ -141,24 +141,24 @@ Audio_read(pTHX_ Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long
 static void
 sun_load(pTHX_ Audio *au, PerlIO *f, long magic)
 {
- long hdrsz = rblong(aTHX_ f,sizeof(long));
+ STRLEN hdrsz = rblong(aTHX_ f,sizeof(long));
  long size  = rblong(aTHX_ f,sizeof(long));
  long enc   = rblong(aTHX_ f,sizeof(long));
  long rate  = rblong(aTHX_ f,sizeof(long));
- long chan  = rblong(aTHX_ f,sizeof(long));
- int dsize   = 1;
+ unsigned chan = rblong(aTHX_ f,sizeof(long));
+ assert(magic == SUN_MAGIC);
  au->rate   = rate;
  hdrsz -= SUN_HDRSIZE;
  if (!au->data)
   au->data    = newSVpv("",0);
  if (hdrsz)
-  { 
+  {
    if (!au->comment)
     au->comment = newSVpv("",0);
-   sv_upgrade(au->comment,SVt_PV); 
+   sv_upgrade(au->comment,SVt_PV);
    PerlIO_read(f,SvGROW(au->comment,hdrsz),hdrsz);
    SvCUR(au->comment) = hdrsz;
-  } 
+  }
  switch(enc)
   {
    case SUN_ULAW:
@@ -174,7 +174,7 @@ sun_load(pTHX_ Audio *au, PerlIO *f, long magic)
     croak("Unsupported au format");
     break;
   }
- /* For now we can only represent one channel so average all channels */ 
+ /* For now we can only represent one channel so average all channels */
  if (chan > 1)
   {
    float *s = AUDIO_DATA(au);
@@ -195,14 +195,14 @@ sun_load(pTHX_ Audio *au, PerlIO *f, long magic)
       {
        v += *s++;
       }
-     *d++ = v / chan; 
+     *d++ = v / chan;
     }
    SvCUR_set(au->data,(d-AUDIO_DATA(au))*sizeof(float));
    if (!au->comment)
     au->comment = newSVpv("",0);
-   sv_upgrade(au->comment,SVt_PV); 
-   sv_catpvf(au->comment,"averaged from %u channels",chan); 
-  } 
+   sv_upgrade(au->comment,SVt_PV);
+   sv_catpvf(au->comment,"averaged from %u channels",chan);
+  }
 }
 
 void

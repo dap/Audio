@@ -1,7 +1,6 @@
 #!/usr/local/bin/perl -w
 use strict;
 use Audio::Data;
-use IO::File;
 
 print "1..6\n";
 

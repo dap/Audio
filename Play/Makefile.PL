@@ -1,5 +1,22 @@
 use ExtUtils::MakeMaker;
 use Config;
+my $gccopt = "";
+if (defined $Config{'gccversion'})
+ {
+  $ver = $Config{'gccversion'};
+  if ($ver ge "2.8")
+   {
+    eval
+     {
+      if ((getpwuid($<))[6] =~ /Nick\s+Ing-Simmons/)
+       {
+        # This is the author - catch as many bugs as possible
+        $gccopt .= "-Wall -W -Wsign-compare";
+       }
+     }
+   }
+ }
+
 
 $VERSION = '0.002';
 
@@ -11,6 +28,7 @@ $VERSION = '0.002';
 sub MMutil::check_headers
 {
  my $inc = $Config{'usrinc'};
+ my $found = 0;
  while (@_)
   {
    my $hdr = shift;
@@ -18,9 +36,16 @@ sub MMutil::check_headers
    $var =~ s,[/.],_,g;
    if (-f "$inc/$hdr")
     {
+     warn "Have <$hdr>\n";
      $define{$var} = 1;
+     $found++;
+    }
+   else
+    {
+     warn "Cannot find <$hdr>\n";
     }
   }
+ return $found;
 }
 
 sub translate_osname
@@ -44,9 +69,19 @@ my $driver = 'dummy';
 
 foreach ($^O)
  {
-  if (/^(linux|freebsd)$/i)
+  if (/^(linux)$/i)
    {
-    $driver = 'linux';
+    if (MMutil::check_headers("alsa/asoundlib.h") == 1)
+     {
+      $driver = 'alsa';
+      push(@libs,'-lasound');
+      last;
+     }
+    $driver = 'oss';
+   }
+  elsif (/^(\w+bsd)$/i)
+   {
+    $driver = 'oss';
    }
   elsif (/^(sunos|solaris)$/i)
    {
@@ -91,12 +126,12 @@ print PL "use ExtUtils::MakeMaker;
 
 WriteMakefile(
     'NAME'     => 'Audio::Play::$^O',
-    'DEFINE'   => '$define',
+    'DEFINE'   => '$define $gccopt',
     'LIBS'     => [ $libs ],
     'clean'    => {FILES => '*% *.bak'},
     'OBJECT'   => '\$(O_FILES)',
     'VERSION_FROM' => '../../Data/Data.pm',
-    'TYPEMAPS' => [q[../../Data/typemap]]
+    'TYPEMAPS' => [q[../../Data/typemap]],
 );
 ";
 close(PL);
@@ -108,7 +143,8 @@ WriteMakefile(
     'dist'     => { COMPRESS => 'gzip -f', SUFFIX => 'gz' },
     OBJECT     => '',
     'VERSION_FROM' => '../Data/Data.pm',
-    'linkext'  => { LINKTYPE => ''}
+    'linkext'  => { LINKTYPE => ''},
+    DEFINE        => qq[$gccopt],
 );
 
 sub MY::postamble

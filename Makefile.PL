@@ -1,5 +1,5 @@
+use Config;
 use ExtUtils::MakeMaker;
-
 WriteMakefile(
     'NAME'     => 'Audio',
     'EXE_FILES' => [qw(morse pplay dial tkscope)],
@@ -9,7 +9,7 @@ WriteMakefile(
     'dist'     => { COMPRESS => 'gzip -f9', SUFFIX => '.gz' },
     'VERSION_FROM'  => "Data/Data.pm",
     'PMLIBDIRS'   => ['Tk'],
-    PREREQ_PM     => { 'Math::GSL' => 0 },
+#   PREREQ_PM     => { 'Math::GSL' => 0 },
 );
 
 

@@ -53,8 +53,13 @@ extern void Audio_complex_debug _((int N,float *x,PerlIO *f));
 extern void Audio_difference _((int n, float *a, float *b));
 extern void Audio_autocorrelation _((int N, float *x,unsigned p,float *r));
 extern void Audio_durbin _((int NUM_POLES, float *R,float *aa));
-extern int  Audio_lpc _((int length, const float *sig, int order, float *acf, 
+extern int  Audio_lpc _((int length, const float *sig, int order, float *acf,
    	              float *ref, float *lpc));
+
+extern void Audio_Load _((Audio *au, InputStream f));
+extern void Audio_Save _((Audio *au, OutputStream f, char *comment));
+extern IV   Audio_rate _((Audio * au, IV rate));
+
 
 
 

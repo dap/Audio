@@ -1,3 +1,4 @@
+//depot/Audio/Data/Data.xs#19 - edit change 2568 (text)
 /*
   Copyright (c) 1996, 2001 Nick Ing-Simmons. All rights reserved.
   This program is free software; you can redistribute it and/or
@@ -34,10 +35,10 @@ Audio_new(pTHX_ SV **svp, int rate, int flags, int samples, char *class)
  if (samples)
    Audio_more(aTHX_ &tmp,samples);
  if (!sv) {
-  sv = sv_2mortal(newSV(0));  
+  sv = sv_2mortal(newSV(0));
   if (svp)
    *svp = sv;
- } 
+ }
  if (!class)
   class = "Audio::Data";
  sv_setref_pvn(sv,class,(char *)&tmp,sizeof(tmp));
@@ -70,7 +71,7 @@ static float *
 Audio_pow2(pTHX_ Audio *au)
 {
  STRLEN have = Audio_samples(au);
- int n = 1;
+ STRLEN n = 1;
  while (n < have)
   n <<= 1;
  if (n > have)
@@ -88,7 +89,6 @@ Audio_shorts(Audio *au)
  STRLEN samp = Audio_samples(au);
  short *p    = (short *) SvGROW(tmp,samp*sizeof(short));
  float *data = AUDIO_DATA(au);
- STRLEN i;
  int words = AUDIO_WORDS(au);
  SvCUR(tmp) = samp*sizeof(short);
  while (samp--)
@@ -126,7 +126,7 @@ Audio_noise(Audio *au, float dur, float amp)
  int words = AUDIO_WORDS(au);
  while (samp > 0)
   {
-   *buf = amp * (drand48()-0.5);
+   *buf = amp * (Drand01()-0.5);
    samp--;
    buf += words;
   }
@@ -173,7 +173,6 @@ Audio_FIR(Audio *au,float x0)
    Thus Audio_samples(filter) == 2*N+1
 */
  int    N = (Audio_samples(au)-1)/2;
- int i;
  float *b = AUDIO_DATA(au)+N;   /* last b */
  float *x = b+N;                /* last x */
  float y  = *b-- * *x--;
@@ -200,7 +199,6 @@ Audio_AllPole(Audio *au,float x)
    Thus Audio_samples(filter) == 2*N+1
 */
  int    N = (Audio_samples(au)-1)/2;
- int i;
  float *a = AUDIO_DATA(au)+N;   /* last b */
  float *y = a+N;                /* last x */
  float yn = *a-- * *y--;
@@ -208,7 +206,8 @@ Audio_AllPole(Audio *au,float x)
  for (k = N-1; k > 0; k--)
   {
    yn  += *a-- * *y;
-   y[1] = *y--;
+   y[1] = *y;
+   y--;
   }
  yn  += *a * x;
  y[1] = yn;
@@ -264,7 +263,6 @@ Audio_filter_process(pTHX_ Audio *au,float (*func)(Audio *,float),int items,SV *
  int offset = svp - sp;
  int count  = 0;
  int i;
- Audio *lau = NULL;
  SV *result = Nullsv;
  Audio *tmp = Audio_new(aTHX_ &result,au->rate,au->flags,0,0);
  for (i=1; i < items; i++)
@@ -303,7 +301,7 @@ Audio_append_sv(pTHX_ Audio *lau, SV *sv)
   {
    warn("Upgrade to complex");
    Audio_complex(lau);
-  } 
+  }
  if (rau)
   {
    int wrds = AUDIO_WORDS(lau);
@@ -316,17 +314,17 @@ Audio_append_sv(pTHX_ Audio *lau, SV *sv)
        if (rau->rate)
         {
          croak("Cannot append %dHz data to %dHZ Audio",rau->rate,lau->rate);
-	} 
+	}
       }
      else
       {
        lau->rate = rau->rate;
-      }  
-    } 
-   if (wrds == AUDIO_WORDS(rau)) 
+      }
+    }
+   if (wrds == AUDIO_WORDS(rau))
     {
      Copy(AUDIO_DATA(rau),d,n*wrds,float);
-    } 
+    }
    else
     {
      float *s = AUDIO_DATA(rau);
@@ -362,21 +360,19 @@ Audio_append_sv(pTHX_ Audio *lau, SV *sv)
 }
 
 Audio *
-Audio_overload_init(pTHX_ Audio *lau, SV **argp,int dorev)
+Audio_overload_init(pTHX_ Audio *lau, SV **argp,int dorev, SV *right, SV *rev)
 {
  SV *left  = argp[0];
- SV *rev   = argp[2];
  if (SvOK(rev))
   {
    /* Not assignment form */
-   STRLEN len;
    char *type = AUDIO_CLASS(left);
    SV *tsv = Nullsv;
    Audio *tau = Audio_new(aTHX_ &tsv,lau->rate,lau->flags,0,type);
    if (dorev && SvTRUE(rev))
     {
      SV *tsv = left;
-     left    = argp[1];
+     left    = right;
      argp[1] = tsv;
     }
    Audio_append_sv(aTHX_ tau,left);
@@ -436,7 +432,7 @@ CODE:
  }
 OUTPUT:
   RETVAL
-  
+
 void
 Audio_clone(Audio *au)
 CODE:
@@ -455,7 +451,7 @@ CODE:
  SV *result = Nullsv;
  UV samples = Audio_samples(au);
  UV start = au->rate*t0;
- UV end   = au->rate*t1+0.5; 
+ UV end   = au->rate*t1+0.5;
  Audio *rau = Audio_new(aTHX_ &result,au->rate,au->flags,end-start,AUDIO_CLASS(ST(0)));
  if (start < samples)
   {
@@ -464,7 +460,7 @@ CODE:
    if (end > samples)
     end = samples;
    Copy(s,d,(end-start)*AUDIO_WORDS(au),float);
-  } 
+  }
  ST(0) = result;
  XSRETURN(1);
 }
@@ -475,7 +471,7 @@ CODE:
 {
  UV samples = Audio_samples(au);
  UV start = au->rate*t0;
- UV end   = au->rate*t1+0.5; 
+ UV end   = au->rate*t1+0.5;
  if (start < samples)
   {
    float *s   = AUDIO_DATA(au)+start;
@@ -490,12 +486,12 @@ CODE:
      float v = *s++;
      if (v > max) max = v;
      if (v < min) min = v;
-    } 
+    }
    ST(0) = sv_2mortal(newSVnv(max));
    ST(1) = sv_2mortal(newSVnv(min));
    XSRETURN(2);
-  } 
- XSRETURN(0); 
+  }
+ XSRETURN(0);
 }
 
 SV *
@@ -508,46 +504,46 @@ CODE:
     if (!au->comment)
      au->comment = newSV(0);
     sv_setsv(au->comment,ST(1));
-   } 
+   }
   RETVAL = SvREFCNT_inc(au->comment);
  }
 OUTPUT:
  RETVAL
- 
-void 
+
+void
 Audio_FETCH(au,index)
 Audio *au
-IV index
+UV index
 CODE:
  {
   if (index < Audio_samples(au))
-   { 
+   {
     float *src = AUDIO_DATA(au)+(index * AUDIO_WORDS(au));
     if (AUDIO_COMPLEX(au) && src[1] != 0.0)
      {
       SV *result = Nullsv;
       Audio *tau = Audio_new(aTHX_ &result,au->rate, au->flags, 1,0);
-      tau->flags |= AUDIO_F_COMPLEX;   
+      tau->flags |= AUDIO_F_COMPLEX;
       Copy(src,AUDIO_DATA(tau),AUDIO_WORDS(au),float);
       ST(0) = result;
      }
     else
-     { 
+     {
       ST(0) = sv_2mortal(newSVnv(*src));
-     } 
+     }
    }
   else
    {
     ST(0) = &PL_sv_undef;
-   } 
-  XSRETURN(1); 
+   }
+  XSRETURN(1);
  }
 
-void 
+void
 Audio_STORE(au,index,sv)
 Audio * au
 IV  	index
-SV *	sv 
+SV *	sv
 CODE:
  {
   IV n = Audio_samples(au);
@@ -572,23 +568,23 @@ CODE:
    {
     v[0] = SvNV(sv);
     v[1] = 0.0;
-   } 
+   }
   if (index+len-1 > n)
    Audio_more(aTHX_ au,(index-n));
-  dst = AUDIO_DATA(au)+(index*AUDIO_WORDS(au)); 
-  Copy(src,dst,len*AUDIO_WORDS(au),float); 
+  dst = AUDIO_DATA(au)+(index*AUDIO_WORDS(au));
+  Copy(src,dst,len*AUDIO_WORDS(au),float);
  }
 
 IV
 Audio_samples(au,...)
 Audio *		au
 
-IV 
+IV
 Audio_length(au,...)
 Audio *		au
 CODE:
  {
-  RETVAL = Audio_samples(au);   
+  RETVAL = Audio_samples(au);
   if (items > 1)
    {
     IV want = SvIV(ST(1));
@@ -598,8 +594,8 @@ CODE:
      {
       STRLEN sz = want * sizeof(float) * AUDIO_WORDS(au);
       SvCUR_set(au->data,sz);
-     } 
-   } 
+     }
+   }
  }
 OUTPUT:
  RETVAL
@@ -620,7 +616,7 @@ SV *		right
 SV *		rev
 CODE:
  {
-  Audio *dau = Audio_overload_init(aTHX_ lau, &ST(0),1);
+  Audio *dau = Audio_overload_init(aTHX_ lau, &ST(0),1,right,rev);
   Audio_append_sv(aTHX_ dau, ST(1));
   XSRETURN(1);
  }
@@ -633,7 +629,7 @@ SV *		rev
 CODE:
  {
   Audio *rau;
-  lau = Audio_overload_init(aTHX_ lau, &ST(0),0);
+  lau = Audio_overload_init(aTHX_ lau, &ST(0),0,right,rev);
   rau = Audio_from_sv(aTHX_ ST(1));
   if (rau)
    {
@@ -676,7 +672,7 @@ SV *		rev
 CODE:
  {
   Audio *rau;
-  lau = Audio_overload_init(aTHX_ lau, &ST(0),0);
+  lau = Audio_overload_init(aTHX_ lau, &ST(0),0,right,rev);
   rau = Audio_from_sv(aTHX_ ST(1));
   if (rau)
    {
@@ -727,7 +723,7 @@ SV *		rev
 CODE:
  {
   Audio *rau;
-  lau = Audio_overload_init(aTHX_ lau, &ST(0),0);
+  lau = Audio_overload_init(aTHX_ lau, &ST(0),0,right,rev);
   rau = Audio_from_sv(aTHX_ ST(1));
   if (rau)
    {
@@ -755,7 +751,7 @@ SV *		rev
 CODE:
  {
   Audio *rau;
-  lau = Audio_overload_init(aTHX_ lau, &ST(0),0);
+  lau = Audio_overload_init(aTHX_ lau, &ST(0),0,right,rev);
   rau = Audio_from_sv(aTHX_ ST(1));
   if (rau)
    {
@@ -825,14 +821,14 @@ CODE:
   sv_setref_pvn((ST(0) = sv_2mortal(newSV(0))),"Audio::Data",(char *)&tmp,sizeof(tmp));
   XSRETURN(1);
  }
- 
+
 void
 Audio_autocorrelation(au,p)
 Audio * au
 int 	p
 CODE:
  {
-  char *type = AUDIO_CLASS(ST(0)); 
+  char *type = AUDIO_CLASS(ST(0));
   SV *result = Nullsv;
   Audio *tmp = Audio_new(aTHX_ &result,au->rate, 0, p+1,type);
   float *x = AUDIO_DATA(au);
@@ -859,12 +855,12 @@ CODE:
   sv_setref_pvn((ST(0) = sv_2mortal(newSV(0))),"Audio::Data",(char *)&tmp,sizeof(tmp));
   XSRETURN(1);
  }
- 
+
 void
 Audio_lpc(Audio *au,int order,SV *ac = 0, SV *rf = 0)
 CODE:
 {
- char *type = AUDIO_CLASS(ST(0)); 
+ char *type = AUDIO_CLASS(ST(0));
  SV *result = Nullsv;
  Audio *lpc = Audio_new(aTHX_ &result,au->rate, 0, order+1,type);
  float *acf = AUDIO_DATA(Audio_new(aTHX_ &ac, au->rate, 0, order+1,type));
@@ -897,14 +893,14 @@ CODE:
  }
 
 void
-Audio_conjugate(au,junk,rev)
+Audio_conjugate(au,right,rev)
 Audio *		au
-SV *		junk
+SV *		right
 SV *		rev
 CODE:
  {
   ST(2) = &PL_sv_no;
-  au = Audio_overload_init(aTHX_ au, &ST(0),0);
+  au = Audio_overload_init(aTHX_ au, &ST(0),0,right,rev);
   Audio_conjugate(Audio_samples(au),Audio_complex(au),1.0);
  }
 

@@ -6,7 +6,12 @@
 
 #include <EXTERN.h>
 #include <perl.h>
+#include <math.h>
 #include "Audio.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979
+#endif
 
 #define xReal(x,i) x[2*i]
 #define xImag(x,i) x[2*i+1]
@@ -305,10 +310,10 @@ Audio_autocorrelation(int N, float *x,unsigned p,float *r)
 void
 Audio_autocorrelation(int N, float *x,unsigned p,float *r)
 {
- int i; 
+ unsigned i; 
  for (i = 0; i <= p; i++) 
   {
-   int j;
+   unsigned j;
    float sum = 0.0;
    for(j = 0; j < N - i; j++) 
     sum += x[j] * x[j + i];
@@ -389,13 +394,13 @@ Audio_durbin(int NUM_POLES, float *R,float *aa)
   }
  for (i=1; i <= NUM_POLES; i++)
   {
-   aa[i] = a(i,NUM_POLES);
+   aa[i] = (float) a(i,NUM_POLES);
    G -= aa[i]*R[i];
   }
  /* Return gain as element zero */
  if (G < 0.0)
   G = -G;
- aa[0] = sqrt(G);
+ aa[0] = (float) sqrt(G);
  Safefree(E);
  Safefree(k);
  Safefree(A);
@@ -413,7 +418,11 @@ Audio_lpc(int length, const float *sig, int order, float *acf,
 
     int i, j;
     float e, ci, sum;
+#ifdef __GCC__
     float tmp[order];
+#else
+    float *tmp = (float*) calloc(order,sizeof(float));
+#endif
     int stableorder=-1;
 
     /* compute autocorellation */
@@ -462,6 +471,9 @@ Audio_lpc(int length, const float *sig, int order, float *acf,
 
     // normalisation for frame length
     lpc[0] = e / length;
+#ifndef __GCC__
+    free(tmp);
+#endif
     return stableorder;
 }
 

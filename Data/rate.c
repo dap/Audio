@@ -71,7 +71,7 @@ Audio_rate(Audio * au, IV rate)
    unsigned long irate = au->rate;
    unsigned long isamp = Audio_samples(au);
 
-   if (irate != 0 && irate != orate || isamp != 0)
+   if (irate != 0 && irate != orate && isamp != 0)
     {
      unsigned long lcmrate        /* least common multiple of rates */
      = lcm(irate, orate);
@@ -82,7 +82,6 @@ Audio_rate(Audio * au, IV rate)
 
      unsigned long intot = 0;
      unsigned long outtot = 0;    /* total samples in terms of LCM rate */
-     int done = 0;
      float last;
      dTHX;
      SV *odata = newSVpv("", 0);

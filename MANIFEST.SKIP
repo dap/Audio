@@ -1,5 +1,5 @@
 Audio\.c
-%$
+[%~]$
 \.tar\.
 \.(o|a|bak|old|bs|bck|gz|dat)$
 \b(blib|Testers)\b
@@ -15,3 +15,4 @@ Play/Net/Net\.c
 Play/solaris
 Play/linux
 Play/MSWin32
+roots.pl

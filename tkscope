@@ -2,12 +2,11 @@
 use strict;
 use Tk;
 use Tk::widgets qw(Canvas);
-use Audio::Data;
+use Audio::Data qw(solve_polynomial);
 use Audio::Play;
 use Audio::Filter;
 use Tk::Scope;
 use Carp;
-use Math::GSL;
 use File::Basename qw(dirname);
 use File::Spec;
 use Cwd;
@@ -586,7 +585,7 @@ sub roots
  # filter equation H(z) = 1/(1-Sigma(1,N,A[i] * z**(-i)))
  # Form array of coefficients
  my @poly = (1.0,map { -$_ } @lpc);
- my @roots = poly_complex_solve(@poly);
+ my @roots = solve_polynomial(@poly);
  # Values of roots are values of z**-1 i.e. 1/Z
  # So poles are at 1/root. For 1/root to be inside unit circle
  # roots above should be outside! i.e. abs(root) > 1

@@ -555,6 +555,10 @@ static unsigned char _l2u_[] =
 unsigned char *_l2u = _l2u_ + 4096;
 short *_u2l = _u2l_;
 
+#ifndef __GNUC__
+#define inline
+#endif
+
 static inline long
 Max(int bits)
 {
@@ -609,7 +613,6 @@ AudioShorts(Audio *au)
  STRLEN samp = Audio_samples(au);
  short *p   = (short *) SvGROW(tmp,samp*sizeof(short));
  float *data = (float *) SvPVX(au->data);
- STRLEN i;
  while (samp--)
   {
    *p++ = float2linear(*data++,16);

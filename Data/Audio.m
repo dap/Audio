@@ -3,6 +3,8 @@
 #include "Audio_f.h"
 #define _l2u (*AudioVptr->V__l2u)
 #define _u2l (*AudioVptr->V__u2l)
+#define Audio_Load (*AudioVptr->V_Audio_Load)
+#define Audio_Save (*AudioVptr->V_Audio_Save)
 #define Audio_autocorrelation (*AudioVptr->V_Audio_autocorrelation)
 #define Audio_complex_debug (*AudioVptr->V_Audio_complex_debug)
 #define Audio_conjugate (*AudioVptr->V_Audio_conjugate)
@@ -14,6 +16,7 @@
 #define Audio_r2_ifft (*AudioVptr->V_Audio_r2_ifft)
 #define Audio_r4_fft (*AudioVptr->V_Audio_r4_fft)
 #define Audio_r4_ifft (*AudioVptr->V_Audio_r4_ifft)
+#define Audio_rate (*AudioVptr->V_Audio_rate)
 #define Audio_shorts (*AudioVptr->V_Audio_shorts)
 #define Audio_w (*AudioVptr->V_Audio_w)
 #define float2linear (*AudioVptr->V_float2linear)

@@ -84,13 +84,14 @@ static int
 audio_init(play_audio_t *dev,int wait)
 {
  int try;
+ int flags = (wait) ? 0 : O_NDELAY;
  for (try = 0; try < 5; try++)
   {
-   dev->fd = open(dev_file, O_WRONLY | O_NDELAY | O_EXCL);
-   if (dev->fd >= 0 || errno != EBUSY)
+   dev->fd = open(dev_file, O_WRONLY | O_EXCL | flags);
+   if (dev->fd >= 0 || errno != EBUSY || wait)
     break;
-   usleep(10000);  
-  } 
+   usleep(10000);
+  }
  if (dev->fd >= 0)
   {
    /* Modern /dev/dsp honours O_NONBLOCK and O_NDELAY for write which
@@ -103,7 +104,7 @@ audio_init(play_audio_t *dev,int wait)
      if (fcntl(dev->fd,F_SETFL,fl & ~(O_NONBLOCK|O_NDELAY)) == 0)
       {
        dev->samp_rate = SAMP_RATE;
-#ifdef SNDCTL_DSP_RESET     
+#ifdef SNDCTL_DSP_RESET
        if (ioctl(dev->fd, SNDCTL_DSP_RESET, 0) != 0)
         {
 	 return 0;
@@ -115,12 +116,12 @@ audio_init(play_audio_t *dev,int wait)
 	 return 0;
 	}
 #else	
-#ifdef SNDCTL_DSP_SPEED      
+#ifdef SNDCTL_DSP_SPEED
        if (ioctl(dev->fd, SNDCTL_DSP_SPEED, &dev->samp_rate) != 0)
         {
 	 return 0;
 	}
-#endif   
+#endif
 #endif /* can read rate */
 #ifdef SNDCTL_DSP_GETFMTS
        if (ioctl(dev->fd,SNDCTL_DSP_GETFMTS,&fl) == 0)
