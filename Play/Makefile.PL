@@ -75,10 +75,10 @@ translate_osname("config/${driver}.xs","$^O/$^O.xs");
 my $pm = (-f "config/${driver}.pm") ? "config/${driver}.pm" : "config/generic.pm";
 translate_osname($pm,"$^O/$^O.pm");
 
- 
+
 if (-f "config/${driver}.cfg")
  {
-  eval { require "config/${driver}.cfg" };
+  eval { require "./config/${driver}.cfg" };
   die "config/${driver}.cfg $@" if $@;
  }
 

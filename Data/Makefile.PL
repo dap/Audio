@@ -8,7 +8,20 @@ WriteMakefile(
     'VERSION_FROM'  => 'Data.pm'
 );
 
-sub MY::postamble
+package MY;
+
+sub post_initialize
+{
+ my ($self) = @_;
+# my $dir = $self->catdir('$(INST_ARCHLIBDIR)','pTk');
+ my $dir = '$(INST_ARCHLIBDIR)';
+ foreach $name (sort(@{$self->{H}},qw(Audio.m Audio.t typemap)))
+  {
+   $self->{PM}->{$name} = $self->catfile($dir,$name);
+  }
+}
+
+sub postamble
 {
 '
 Audio.t : Audio.h  mkVFunc
@@ -18,10 +31,10 @@ config :: Audio.t
 ';
 }
 
-sub MY::xs_c
+sub xs_c
 {
  my $self = shift;
- return $self->MM::xs_c .
+ return $self->SUPER::xs_c .
 '
 .SUFFIXES: .t .h 
 .h.t :

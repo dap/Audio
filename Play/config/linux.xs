@@ -23,39 +23,50 @@
 #include <sys/param.h>
 #include <sys/ioctl.h>
 
-#ifdef HAVE_SYS_SOUNDCARD_H
-/* linux style */
+#ifdef HAVE_SYS_SOUNDCARD_H      /* linux style */
 #include <sys/soundcard.h>
 #endif
 
-#ifdef HAVE_MACHINE_SOUNDCARD_H
-/* FreeBSD style */
+#ifdef HAVE_MACHINE_SOUNDCARD_H  /* FreeBSD style */
 #include <machine/soundcard.h>
 #endif
 
 /* Nested dynamic loaded extension magic ... */
-#include "../../Data/Audio.m"  
+#include "../../Data/Audio.m"
 AudioVtab     *AudioVptr;
 
-/* file descriptor for audio device */
-
-#if defined(HAVE_DEV_DSPW)
-static char *dev_file = "/dev/dspW";
-#define USE_16_BIT
-#else
- #if defined(HAVE_DEV_AUDIO)
-  static char *dev_file = "/dev/audio";
-  #define USE_ULAW
- #else
-  #if defined(HAVE_DEV_SBDSP)
-   #define USE_8_BIT
-   static char *dev_file = "/dev/sbdsp";
-  #else
-   #define USE_8_BIT
-   static char *dev_file = "/dev/dsp";
-  #endif
- #endif
+#ifndef AFMT_S16_LE
+#define AFMT_S16_LE	16
 #endif
+
+#ifndef AFMT_U8
+#define AFMT_U8		8
+#endif
+
+#ifndef AFMT_MU_LAW
+#define AFMT_MU_LAW	1
+#endif
+
+#if defined(HAVE_DEV_DSP)
+ char *dev_file = "/dev/dsp";
+ static int dev_fmt = AFMT_U8;
+#else /* DSP */
+ #if defined(HAVE_DEV_AUDIO)
+  char *dev_file = "/dev/audio";
+  static int dev_fmt = AFMT_MU_LAW;
+ #else
+  #if defined(HAVE_DEV_DSPW) || !defined(HAVE_DEV_SBDSP)
+   char *dev_file = "/dev/dspW";
+   static int dev_fmt = AFMT_S16_LE;
+  #else
+   #if defined(HAVE_DEV_SBDSP)
+    char *dev_file = "/dev/sbdsp";
+    static int dev_fmt = AFMT_U8;
+   #endif  /* SBDSP */
+  #endif /* DSPW */
+ #endif /* AUDIO */
+#endif /* DSP */
+
 
 #define SAMP_RATE 8000
 
@@ -63,19 +74,88 @@ typedef struct
 {
  long samp_rate;
  int fd;
+ int fmt;
  float gain;
 } play_audio_t;
+
+static const short endian = 0x1234;
 
 static int
 audio_init(play_audio_t *dev,int wait)
 {
- dev->samp_rate = SAMP_RATE;
- dev->fd = open(dev_file, O_WRONLY | O_NDELAY);
- if (dev->fd < 0)
-  {                                 
-   return 0;
+ int try;
+ for (try = 0; try < 5; try++)
+  {
+   dev->fd = open(dev_file, O_WRONLY | O_NDELAY | O_EXCL);
+   if (dev->fd >= 0 || errno != EBUSY)
+    break;
+   usleep(10000);  
+  } 
+ if (dev->fd >= 0)
+  {
+   /* Modern /dev/dsp honours O_NONBLOCK and O_NDELAY for write which
+      leads to data being dropped if we try and write and device isn't ready
+      we would either have to retry or we can just turn it off ...
+    */
+   int fl = fcntl(dev->fd,F_GETFL,0);
+   if (fl != -1)
+    {
+     if (fcntl(dev->fd,F_SETFL,fl & ~(O_NONBLOCK|O_NDELAY)) == 0)
+      {
+       dev->samp_rate = SAMP_RATE;
+#ifdef SNDCTL_DSP_RESET     
+       if (ioctl(dev->fd, SNDCTL_DSP_RESET, 0) != 0)
+        {
+	 return 0;
+	}
+#endif	
+#ifdef SOUND_PCM_READ_RATE
+       if (ioctl(dev->fd, SOUND_PCM_READ_RATE, &dev->samp_rate) != 0)
+        {
+	 return 0;
+	}
+#else	
+#ifdef SNDCTL_DSP_SPEED      
+       if (ioctl(dev->fd, SNDCTL_DSP_SPEED, &dev->samp_rate) != 0)
+        {
+	 return 0;
+	}
+#endif   
+#endif /* can read rate */
+#ifdef SNDCTL_DSP_GETFMTS
+       if (ioctl(dev->fd,SNDCTL_DSP_GETFMTS,&fl) == 0)
+        {
+         int fmts = fl;
+         if (*((const char *)(&endian)) == 0x34)
+          {
+           if ((fl = fmts & AFMT_S16_LE) && ioctl(dev->fd,SNDCTL_DSP_SETFMT,&fl) == 0)
+            {
+             dev->fmt = fl;
+             return 1;
+            }
+           }
+         else
+          {
+           if ((fl = fmts & AFMT_S16_BE) && ioctl(dev->fd,SNDCTL_DSP_SETFMT,&fl) == 0)
+            {
+             dev->fmt = fl;
+             return 1;
+            }
+          }
+         if ((fl = fmts & AFMT_MU_LAW) && ioctl(dev->fd,SNDCTL_DSP_SETFMT,&fl) == 0)
+          {
+           dev->fmt = fl;
+           return 1;
+          }
+        }
+#endif
+       warn("Using %s on %d fl=%X\n",dev_file,dev->fd,fl);
+       return 1;
+      }
+    }
   }
- return 1;
+ perror(dev_file);
+ return 0;
 }
 
 IV
@@ -83,8 +163,10 @@ audio_rate(play_audio_t *dev, IV rate)
 {IV old = dev->samp_rate;
  if (rate)
   {
-   dev->samp_rate = rate;
+   int want = dev->samp_rate = rate;
    ioctl(dev->fd, SNDCTL_DSP_SPEED, &dev->samp_rate);
+   if (dev->samp_rate != want)
+    printf("Actual sample rate: %ld\n", dev->samp_rate);
   }
  return old;
 }
@@ -94,10 +176,10 @@ audio_flush(play_audio_t *dev)
 {
  if (dev->fd >= 0)
   {
-   int dummy;                              
+   int dummy;
    ioctl(dev->fd, SNDCTL_DSP_SYNC, &dummy);
   }
-} 
+}
 
 void
 audio_DESTROY(play_audio_t *dev)
@@ -115,45 +197,72 @@ void
 audio_play16(play_audio_t *dev,int n, short *data)
 {
  if (n > 0)
-  {              
-   unsigned char *converted = NULL;
-#ifdef USE_16_BIT
-   n *= 2;                    
-   converted = (unsigned char *) data;
-#else
-#ifdef USE_ULAW                                               
-   if (converted  = (unsigned char *) malloc(n))
+  {
+   if (dev->fmt == AFMT_S16_LE || dev->fmt == AFMT_S16_BE)
     {
-     unsigned char *p = converted;
-     unsigned char *e = p + n;
-     while (p < e)
+     n *= 2;
+     if (dev->fd >= 0)
       {
-       *p++ = short2ulaw(*data++);
+       if (write(dev->fd, data, n) != n)
+        perror("write");
       }
     }
-#else
-   converted = (unsigned char *) malloc(n);
-   if (converted)
+   else if (dev->fmt == AFMT_U8)
     {
+     unsigned char *converted = (unsigned char *) malloc(n);
      int i;
+
+     if (converted == NULL)
+      {
+       croak("Could not allocate memory for conversion\n");
+      }
+
      for (i = 0; i < n; i++)
-      converted[i] = (data[i] - 32768) / 256;
-    }
-#endif
-#endif
-   if (converted)
-    {
+      converted[i] = (data[i] - 32767) / 256;
+
      if (dev->fd >= 0)
-      {               
+      {
        if (write(dev->fd, converted, n) != n)
         perror("write");
-      }               
-     if (converted != (unsigned char *) data)
-      free(converted);
+      }
+     free(converted);
+    }
+   else if (dev->fmt == AFMT_MU_LAW)
+    {
+     unsigned char *plabuf = (unsigned char *) malloc(n);
+     if (plabuf)
+      {
+       int w;
+       unsigned char *p = plabuf;
+       unsigned char *e = p + n;
+       while (p < e)
+        {
+         *p++ = short2ulaw(*data++);
+        }
+       p = plabuf;
+       while ((w = write(dev->fd, p, n)) != n)
+        {
+         if (w == -1 && errno != EINTR)
+          {
+           croak("%d,%s:%d\n", errno, __FILE__, __LINE__);
+          }
+         else
+          {
+           warn("Writing %u, only wrote %u\n", n, w);
+           p += w;
+           n -= w;
+          }
+        }
+       free(plabuf);
+      }
+     else
+      {
+       croak("No memory for ulaw data");
+      }
     }
    else
     {
-     croak("Could not allocate memory for conversion\n");
+     croak("unknown audio format");
     }
   }
 }
@@ -168,16 +277,16 @@ audio_gain(play_audio_t *dev,float gain)
     warn("Cannot change audio gain");
    /* If you can tell me how,
       otherwise we could multiply out during conversion to short.
-      ... NI-S 
+      ... NI-S
    */
   }
  return prev_gain;
 }
 
 /*
-   API level Play function 
+   API level Play function
     - volume may go from the interface - it is un-natural
-    - convert to 'short' should be done at Audio::Play level 
+    - convert to 'short' should be done at Audio::Play level
     - likewise rate-matching needs to be higher level
 */
 void
@@ -240,5 +349,5 @@ float		vol
 BOOT:
  {
   /* Nested dynamic loaded extension magic ... */
-  AudioVptr = (AudioVtab *) SvIV(perl_get_sv("Audio::Data::AudioVtab",5)); 
+  AudioVptr = (AudioVtab *) SvIV(perl_get_sv("Audio::Data::AudioVtab",5));
  }

@@ -1,3 +1,4 @@
+#define PERL_NO_GET_CONTEXT
 #include <EXTERN.h>
 #include <perl.h>
 #include "Audio.h"
@@ -9,13 +10,8 @@
 #define SUN_LIN_8	2			/* Linear 8 bits */
 #define SUN_LIN_16	3			/* Linear 16 bits */
 
-static void wblong _((PerlIO *f, long x));
-static long rblong _((PerlIO *f, int n));
-
 static void
-wblong(f, x)
-PerlIO *f;
-long x;
+wblong(pTHX_ PerlIO *f, long x)
 {
  int i;
  for (i = 24; i >= 0; i -= 8)
@@ -26,9 +22,7 @@ long x;
 }
 
 static long
-rblong(f,n)
-PerlIO *f;
-int n;
+rblong(pTHX_ PerlIO *f,int n)
 {
  long x = 0;
  int i;
@@ -40,35 +34,22 @@ int n;
  return x;
 }
 
-extern void Audio_header _((PerlIO *f,unsigned enc,unsigned rate,unsigned size,char *comment));
-
 void
-Audio_header(f, enc, rate, size, comment)
-PerlIO *f;
-unsigned enc;
-unsigned rate;
-unsigned size;
-char *comment;
+Audio_header(pTHX_ PerlIO *f,unsigned enc,unsigned rate,
+                          unsigned size,char *comment)
 {
  if (!comment)
   comment = "";
- wblong(f, SUN_MAGIC);
- wblong(f, SUN_HDRSIZE + strlen(comment));
- wblong(f, size);
- wblong(f, enc);
- wblong(f, rate);
- wblong(f, 1);                   /* channels */
+ wblong(aTHX_ f, SUN_MAGIC);
+ wblong(aTHX_ f, SUN_HDRSIZE + strlen(comment));
+ wblong(aTHX_ f, size);
+ wblong(aTHX_ f, enc);
+ wblong(aTHX_ f, rate);
+ wblong(aTHX_ f, 1);                   /* channels */
  PerlIO_write(f, comment, strlen(comment));
 }
 
-static long Audio_write _((PerlIO *f, int au_format, int n,float *data));
-
-static long
-Audio_write(f, au_encoding, n, data)
-PerlIO *f;
-int au_encoding;
-int n;
-float *data;
+static long Audio_write (pTHX_ PerlIO *f, int au_encoding, int n,float *data)
 {
  long au_size = 0;
  if (n > 0)
@@ -78,8 +59,13 @@ float *data;
      while (n--)
       {
        short s = float2linear(*data++,16);
-       if (PerlIO_write(f, &s, sizeof(s)) != sizeof(s))
-        au_size += sizeof(s);
+       /* Write big-endian to match header code */
+       char  b[2];
+       b[0] = (s >> 8) & 0xFF;
+       b[1] = (s >> 0) & 0xFF;
+       if (PerlIO_write(f, b, 2) != 2)
+    	 break;
+       au_size += sizeof(s);
       }
     }
    else if (au_encoding == SUN_ULAW)
@@ -88,7 +74,8 @@ float *data;
       {
        char s = float2ulaw(*data++);
        if (PerlIO_write(f, &s, sizeof(s)) != sizeof(s))
-        au_size += sizeof(s);
+        break;
+       au_size += sizeof(s);
       }
     }
    else if (au_encoding == SUN_LIN_8)
@@ -97,7 +84,8 @@ float *data;
       {
        char s = float2linear(*data++,8);
        if (PerlIO_write(f, &s, sizeof(s)) != sizeof(s))
-        au_size += sizeof(s);
+    	break;
+       au_size += sizeof(s);
       }
     }
    else
@@ -108,12 +96,7 @@ float *data;
  return au_size;
 }
 
-static void Audio_term _((PerlIO *f,long au_size));
-
-static void
-Audio_term(f,au_size)
-PerlIO *f;
-long au_size;
+static void Audio_term (pTHX_ PerlIO *f,long au_size)
 {
  off_t here = PerlIO_tell(f);
  PerlIO_flush(f);
@@ -126,16 +109,15 @@ long au_size;
    /* Now go back and overwite header with actual size */
    if (PerlIO_seek(f, 8L, SEEK_SET) == 8)
     {
-     wblong(f, au_size);
+     wblong(aTHX_ f, au_size);
     }
   }
 }
 
 static void
-Audio_read(Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
+Audio_read(pTHX_ Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
 {
  SV *data = au->data;
- dTHX;
  if (count > 0)
   {
    /* If we know how big it is to be get grow out of the way */
@@ -144,7 +126,7 @@ Audio_read(Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
  while (count && !PerlIO_eof(f))
   {
    STRLEN len = SvCUR(data);
-   long  v  = rblong(f,dsize);
+   long  v  = rblong(aTHX_ f,dsize);
    float *p = (float *) (SvGROW(data,len+sizeof(float))+len);
    if (proc)
     *p = (*proc)(v);
@@ -157,48 +139,81 @@ Audio_read(Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
 }
 
 static void
-sun_load(Audio *au, PerlIO *f, long magic)
+sun_load(pTHX_ Audio *au, PerlIO *f, long magic)
 {
- long hdrsz = rblong(f,sizeof(long));
- long size  = rblong(f,sizeof(long));
- long enc   = rblong(f,sizeof(long));
- long rate  = rblong(f,sizeof(long));
- long chan  = rblong(f,sizeof(long));
+ long hdrsz = rblong(aTHX_ f,sizeof(long));
+ long size  = rblong(aTHX_ f,sizeof(long));
+ long enc   = rblong(aTHX_ f,sizeof(long));
+ long rate  = rblong(aTHX_ f,sizeof(long));
+ long chan  = rblong(aTHX_ f,sizeof(long));
  int dsize   = 1;
- dTHX;
  au->rate   = rate;
  hdrsz -= SUN_HDRSIZE;
- if (!au->comment)
-  au->comment = newSVpv("",0);
  if (!au->data)
   au->data    = newSVpv("",0);
- PerlIO_read(f,SvGROW(au->comment,hdrsz),hdrsz);
- SvCUR(au->comment) = hdrsz;
+ if (hdrsz)
+  { 
+   if (!au->comment)
+    au->comment = newSVpv("",0);
+   sv_upgrade(au->comment,SVt_PV); 
+   PerlIO_read(f,SvGROW(au->comment,hdrsz),hdrsz);
+   SvCUR(au->comment) = hdrsz;
+  } 
  switch(enc)
   {
    case SUN_ULAW:
-    Audio_read(au,f,1,size,ulaw2float);
+    Audio_read(aTHX_ au,f,1,size,ulaw2float);
     break;
    case SUN_LIN_16:
-    Audio_read(au,f,2,size,NULL);
+    Audio_read(aTHX_ au,f,2,size,NULL);
     break;
    case SUN_LIN_8:
-    Audio_read(au,f,1,size,NULL);
+    Audio_read(aTHX_ au,f,1,size,NULL);
     break;
    default:
     croak("Unsupported au format");
     break;
   }
+ /* For now we can only represent one channel so average all channels */ 
+ if (chan > 1)
+  {
+   float *s = AUDIO_DATA(au);
+   float *d = s;
+   UV samples = Audio_samples(au);
+   float *e = s+samples;
+   if (samples % chan)
+    {
+     warn("%d channels but %lu samples",chan,samples);
+     samples = (samples/chan)*chan;
+     e = s+samples;
+    }
+   while (s < e)
+    {
+     unsigned i;
+     float v = *s++;
+     for (i = 1; i < chan; i++)
+      {
+       v += *s++;
+      }
+     *d++ = v / chan; 
+    }
+   SvCUR_set(au->data,(d-AUDIO_DATA(au))*sizeof(float));
+   if (!au->comment)
+    au->comment = newSVpv("",0);
+   sv_upgrade(au->comment,SVt_PV); 
+   sv_catpvf(au->comment,"averaged from %u channels",chan); 
+  } 
 }
 
 void
 Audio_Load(Audio *au, InputStream f)
 {
- long magic = rblong(f,sizeof(long));
+ dTHX;
+ long magic = rblong(aTHX_ f,sizeof(long));
  switch(magic)
   {
    case SUN_MAGIC:
-    sun_load(au, f, magic);
+    sun_load(aTHX_ au, f, magic);
     break;
    default:
     croak("Unknown file format");
@@ -209,19 +224,19 @@ Audio_Load(Audio *au, InputStream f)
 void
 Audio_Save(Audio *au, OutputStream f, char *comment)
 {
+ dTHX;
  long encoding = (au->rate == 8000) ? SUN_ULAW : SUN_LIN_16;
  long bytes  = Audio_samples(au);
  if (encoding != SUN_ULAW)
   bytes *= 2;
- if (!comment && au->comment)
+ if (!comment && au->comment && SvOK(au->comment))
   {
-   dTHX;
    STRLEN len;
    comment = SvPV(au->comment,len);
   }
- Audio_header(f, encoding, au->rate, bytes, comment);
- bytes = Audio_write(f, encoding, Audio_samples(au), (float *) SvPVX(au->data));
- Audio_term(f, bytes);
+ Audio_header(aTHX_ f, encoding, au->rate, bytes, comment);
+ bytes = Audio_write(aTHX_ f, encoding, Audio_samples(au), (float *) SvPVX(au->data));
+ Audio_term(aTHX_ f, bytes);
 }
 
 

@@ -69,7 +69,7 @@ AuPlay(AuServer *aud, Audio *au, float volume)
  STRLEN samp = Audio_samples(au);
  Sound s = SoundCreate(SoundFileFormatNone,
                        little_endian ? AuFormatLinearSigned16LSB : AuFormatLinearSigned16MSB,
-                       1, au->rate, samp, SvPV(au->comment,na)); 
+                       1, au->rate, samp, SvPV_nolen(au->comment)); 
  SV *tmp = Audio_shorts(au);
  if (!AuSoundPlayFromData(aud, s, (short *) SvPVX(tmp), AuNone,
                             AuFixedPointFromFloat(volume),
