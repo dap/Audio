@@ -39,13 +39,22 @@ AudioVtab     *AudioVptr;
 
 /* file descriptor for audio device */
 
-
-#if defined(HAVE_DEV_DSP) || !defined(HAVE_DEV_SBDSP)
-static char *dev_file = "/dev/dsp";
+#if defined(HAVE_DEV_DSPW)
+static char *dev_file = "/dev/dspW";
+#define USE_16_BIT
 #else
-#if defined(HAVE_DEV_SBDSP)
-static char *dev_file = "/dev/sbdsp";
-#endif
+ #if defined(HAVE_DEV_AUDIO)
+  static char *dev_file = "/dev/audio";
+  #define USE_ULAW
+ #else
+  #if defined(HAVE_DEV_SBDSP)
+   #define USE_8_BIT
+   static char *dev_file = "/dev/sbdsp";
+  #else
+   #define USE_8_BIT
+   static char *dev_file = "/dev/dsp";
+  #endif
+ #endif
 #endif
 
 #define SAMP_RATE 8000
@@ -63,14 +72,14 @@ audio_init(play_audio_t *dev,int wait)
  dev->samp_rate = SAMP_RATE;
  dev->fd = open(dev_file, O_WRONLY | O_NDELAY);
  if (dev->fd < 0)
-  {
+  {                                 
    return 0;
   }
  return 1;
 }
 
 IV
-audio_rate(play_audio_t *def, IV rate)
+audio_rate(play_audio_t *dev, IV rate)
 {IV old = dev->samp_rate;
  if (rate)
   {
@@ -106,24 +115,46 @@ void
 audio_play16(play_audio_t *dev,int n, short *data)
 {
  if (n > 0)
-  {
-   unsigned char *converted = (unsigned char *) malloc(n);
-   int i;
-
-   if (converted == NULL)
+  {              
+   unsigned char *converted = NULL;
+#ifdef USE_16_BIT
+   n *= 2;                    
+   converted = (unsigned char *) data;
+#else
+#ifdef USE_ULAW                                               
+   if (converted  = (unsigned char *) malloc(n))
+    {
+     unsigned char *p = converted;
+     unsigned char *e = p + n;
+     while (p < e)
+      {
+       *p++ = short2ulaw(*data++);
+      }
+    }
+#else
+   converted = (unsigned char *) malloc(n);
+   if (converted)
+    {
+     int i;
+     for (i = 0; i < n; i++)
+      converted[i] = (data[i] - 32768) / 256;
+    }
+#endif
+#endif
+   if (converted)
+    {
+     if (dev->fd >= 0)
+      {               
+       if (write(dev->fd, converted, n) != n)
+        perror("write");
+      }               
+     if (converted != (unsigned char *) data)
+      free(converted);
+    }
+   else
     {
      croak("Could not allocate memory for conversion\n");
     }
-
-   for (i = 0; i < n; i++)
-    converted[i] = (data[i] - 32768) / 256;
-
-   if (dev->fd >= 0)
-    {
-     if (write(dev->fd, converted, n) != n)
-      perror("write");
-    }
-   free(converted);
   }
 }
 

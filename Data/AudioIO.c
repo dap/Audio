@@ -12,7 +12,7 @@
 static void wblong _((PerlIO *f, long x));
 static long rblong _((PerlIO *f, int n));
 
-static void 
+static void
 wblong(f, x)
 PerlIO *f;
 long x;
@@ -42,7 +42,7 @@ int n;
 
 extern void Audio_header _((PerlIO *f,unsigned enc,unsigned rate,unsigned size,char *comment));
 
-void 
+void
 Audio_header(f, enc, rate, size, comment)
 PerlIO *f;
 unsigned enc;
@@ -63,7 +63,7 @@ char *comment;
 
 static long Audio_write _((PerlIO *f, int au_format, int n,float *data));
 
-static long 
+static long
 Audio_write(f, au_encoding, n, data)
 PerlIO *f;
 int au_encoding;
@@ -135,6 +135,7 @@ static void
 Audio_read(Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
 {
  SV *data = au->data;
+ dTHX;
  if (count > 0)
   {
    /* If we know how big it is to be get grow out of the way */
@@ -155,7 +156,7 @@ Audio_read(Audio *au, PerlIO *f,size_t dsize,long count,float (*proc)(long))
   }
 }
 
-static void 
+static void
 sun_load(Audio *au, PerlIO *f, long magic)
 {
  long hdrsz = rblong(f,sizeof(long));
@@ -164,12 +165,13 @@ sun_load(Audio *au, PerlIO *f, long magic)
  long rate  = rblong(f,sizeof(long));
  long chan  = rblong(f,sizeof(long));
  int dsize   = 1;
+ dTHX;
  au->rate   = rate;
  hdrsz -= SUN_HDRSIZE;
  if (!au->comment)
-  au->comment = newSVpv("",0); 
+  au->comment = newSVpv("",0);
  if (!au->data)
-  au->data    = newSVpv("",0); 
+  au->data    = newSVpv("",0);
  PerlIO_read(f,SvGROW(au->comment,hdrsz),hdrsz);
  SvCUR(au->comment) = hdrsz;
  switch(enc)
@@ -180,7 +182,7 @@ sun_load(Audio *au, PerlIO *f, long magic)
    case SUN_LIN_16:
     Audio_read(au,f,2,size,NULL);
     break;
-   case SUN_LIN_8: 
+   case SUN_LIN_8:
     Audio_read(au,f,1,size,NULL);
     break;
    default:
@@ -210,9 +212,13 @@ Audio_Save(Audio *au, OutputStream f, char *comment)
  long encoding = (au->rate == 8000) ? SUN_ULAW : SUN_LIN_16;
  long bytes  = Audio_samples(au);
  if (encoding != SUN_ULAW)
-  bytes *= 2; 
+  bytes *= 2;
  if (!comment && au->comment)
-  comment = SvPV(au->comment,na);
+  {
+   dTHX;
+   STRLEN len;
+   comment = SvPV(au->comment,len);
+  }
  Audio_header(f, encoding, au->rate, bytes, comment);
  bytes = Audio_write(f, encoding, Audio_samples(au), (float *) SvPVX(au->data));
  Audio_term(f, bytes);

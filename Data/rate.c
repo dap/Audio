@@ -3,17 +3,17 @@
 #include "Audio.h"
 
 /*
- * Derived from 
+ * Derived from
  * Sound Tools rate change effect file.
  * July 5, 1991
  * Copyright 1991 Lance Norskog And Sundry Contributors
  * This source code is freely redistributable and may be used for
- * any purpose.  This copyright notice must be maintained. 
- * Lance Norskog And Sundry Contributors are not responsible for 
+ * any purpose.  This copyright notice must be maintained.
+ * Lance Norskog And Sundry Contributors are not responsible for
  * the consequences of using this software.
  */
 /*
- * Least Common Multiple Linear Interpolation 
+ * Least Common Multiple Linear Interpolation
  *
  * Find least common multiple of the two sample rates.
  * Construct the signal at the LCM by interpolating successive
@@ -23,27 +23,27 @@
  * Of course, actually calculate only the output samples.
  *
  * LCM must be 32 bits or less.  Two prime number sample rates
- * between 32768 and 65535 will yield a 32-bit LCM, so this is 
+ * between 32768 and 65535 will yield a 32-bit LCM, so this is
  * stretching it.
  */
 
 /*
  * Algorithm:
- *  
+ *
  *  Generate a master sample clock from the LCM of the two rates.
  *  Interpolate linearly along it.  Count up input and output skips.
  *
  *  Input:   |inskip |       |       |       |       |
- *                                                                      
- *                                                                      
- *                                                                      
- *  LCM:     |   |   |   |   |   |   |   |   |   |   |
- *                                                                      
- *                                                                      
- *                                                                      
- *  Output:  |  outskip  |           |           | 
  *
- *                                                                      
+ *
+ *
+ *  LCM:     |   |   |   |   |   |   |   |   |   |   |
+ *
+ *
+ *
+ *  Output:  |  outskip  |           |           |
+ *
+ *
  */
 
 /* here for linear interp.  might be useful for other things */
@@ -84,6 +84,7 @@ Audio_rate(Audio * au, IV rate)
      unsigned long outtot = 0;    /* total samples in terms of LCM rate */
      int done = 0;
      float last;
+     dTHX;
      SV *odata = newSVpv("", 0);
      float *ibuf = (float *) SvPVX(au->data);
      float *iend = ibuf + isamp;
@@ -93,7 +94,7 @@ Audio_rate(Audio * au, IV rate)
      float *oend = obuf + osamp;
      float lastsamp = 0;
 
-     /* Cursory check for LCM overflow.  
+     /* Cursory check for LCM overflow.
       * If both rate are below 65k, there should be no problem.
       * 16 bits x 16 bits = 32 bits, which we can handle.
       */
@@ -127,7 +128,7 @@ Audio_rate(Audio * au, IV rate)
          if (ibuf >= iend)
           break;
         }
-       /* long samples with high LCM's overrun counters! 
+       /* long samples with high LCM's overrun counters!
         * so reset when we can.
         */
        if (outtot == intot)
@@ -146,8 +147,8 @@ Audio_rate(Audio * au, IV rate)
  * July 5, 1991
  * Copyright 1991 Lance Norskog And Sundry Contributors
  * This source code is freely redistributable and may be used for
- * any purpose.  This copyright notice must be maintained. 
- * Lance Norskog And Sundry Contributors are not responsible for 
+ * any purpose.  This copyright notice must be maintained.
+ * Lance Norskog And Sundry Contributors are not responsible for
  * the consequences of using this software.
  *
  * Algorithm:  2nd order filter.
@@ -183,8 +184,8 @@ Audio_lowpass(Audio * au, float freq)
  * July 5, 1991
  * Copyright 1991 Lance Norskog And Sundry Contributors
  * This source code is freely redistributable and may be used for
- * any purpose.  This copyright notice must be maintained. 
- * Lance Norskog And Sundry Contributors are not responsible for 
+ * any purpose.  This copyright notice must be maintained.
+ * Lance Norskog And Sundry Contributors are not responsible for
  * the consequences of using this software.
  *
  * Algorithm:  1nd order filter.

@@ -7,6 +7,10 @@ typedef struct
   SV *comment;
  } Audio;
 
+#ifndef dTHX
+#define dTHX extern int Audio__notUsed
+#endif
+
 #define InputStream PerlIO *
 #define OutputStream PerlIO *
 

@@ -6,7 +6,7 @@ sub try_compile
 {
  my $file  = shift;
  # print "$Config{'cc'} $Config{'ccflags'} $file\n";
- my $msgs  = `$Config{'cc'} $Config{'ccflags'} $file 2>&1`;
+ my $msgs  = `$Config{'cc'} $Config{'ccflags'} -I/usr/X11R6/include $file 2>&1`;
  my $ok = ($? == 0);
  unlink('a.out') if (-f 'a.out');
  return $ok;
@@ -18,7 +18,8 @@ if (try_compile("-c ../config/Net.c"))
  {
   WriteMakefile(
       'NAME'     => 'Audio::Play::Net',
-      'LIBS'     => [q[-L/usr/local/lib -laudio -lX11 -lsocket -lnsl -lm]],
+      'LIBS'     => [q[-L/usr/X11R6/lib -L/usr/local/lib -laudio -lX11 -lsocket -lnsl -lm]],
+      'INC'      => q[-I/usr/X11R6/include],
       'clean'    => {FILES => "*% *.bak"},
       'OBJECT'   => '$(O_FILES)',
       'TYPEMAPS' => [q[../../Data/typemap]],

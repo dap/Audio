@@ -7,6 +7,8 @@ $VERSION = "0.001";
 bootstrap Audio::Play::Net $VERSION;
 
 *new = \&OpenServer;
+*play = \&Play;
+*flush = \&Flush;
 
 1;
 

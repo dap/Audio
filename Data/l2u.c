@@ -555,7 +555,7 @@ static unsigned char _l2u_[] =
 unsigned char *_l2u = _l2u_ + 4096;
 short *_u2l = _u2l_;
 
-static inline long 
+static inline long
 Max(int bits)
 {
  static long maxval[64];
@@ -594,7 +594,7 @@ float f;
  return short2ulaw(float2linear(f,16));
 }
 
-float 
+float
 ulaw2float(u)
 long u;
 {
@@ -604,10 +604,11 @@ long u;
 SV *
 AudioShorts(Audio *au)
 {
+ dTHX;
  SV *tmp = newSVpv("",0);
  STRLEN samp = Audio_samples(au);
  short *p   = (short *) SvGROW(tmp,samp*sizeof(short));
- float *data = (float *) SvPVX(au->data); 
+ float *data = (float *) SvPVX(au->data);
  STRLEN i;
  while (samp--)
   {
