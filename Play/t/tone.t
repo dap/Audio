@@ -18,6 +18,7 @@ $dev->play($au) if $dev;
 print "ok 4\n";
 $dev->rate(2*$r);
 my $nr = $dev->rate;
+printf "#wanted %d got %d\n",2*$r,$nr;
 print "not " unless ($nr == 2*$r);
 print "ok 5\n";
 

@@ -562,16 +562,19 @@ short *_u2l = _u2l_;
 static inline long
 Max(int bits)
 {
- static long maxval[64];
+ static long maxval[65];
+ if (bits < 1 || bits > 64)
+  {
+   fprintf(stderr,"Cannot get bits of %d\n",bits);
+   bits = *((int *) 0);
+  } 
  if (!maxval[bits])
   maxval[bits] = (1L << (bits-1));
  return maxval[bits];
 }
 
 float
-linear2float(l,bits)
-long l;
-int bits;
+linear2float(long l,int bits)
 {
  int shift = (8*sizeof(long)-bits);
  float f   = (l << shift) >> shift;
@@ -579,9 +582,7 @@ int bits;
 }
 
 long
-float2linear(f,bits)
-float f;
-int bits;
+float2linear(float f,int bits)
 {
  long n = Max(bits);
  f *= n--;
@@ -592,15 +593,13 @@ int bits;
  return (long) f;
 }
 
-long float2ulaw(f)
-float f;
+long float2ulaw(float f)
 {
  return short2ulaw(float2linear(f,16));
 }
 
 float
-ulaw2float(u)
-long u;
+ulaw2float(long u)
 {
  return linear2float(ulaw2short(u),16);
 }

@@ -10,7 +10,7 @@ sub solve_polynomial;
 require 5.00302;
 
 use XSLoader;
-our $VERSION = sprintf '1.%03d', q$Revision: #28 $ =~ /\D(\d+)\s*$/;
+our $VERSION = sprintf '1.%03d', (q$Revision: #14 $ =~ /\D(\d+)\s*$/)[0] + 15;
 
 XSLoader::load 'Audio::Data',$VERSION;
 
@@ -22,7 +22,6 @@ BEGIN {
     }
 #   warn "epsilon=$epsilon\n";
 }
-
 
 use overload
     'fallback' => 1,

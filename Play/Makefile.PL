@@ -71,8 +71,9 @@ foreach ($^O)
  {
   if (/^(linux)$/i)
    {
-    if (MMutil::check_headers("alsa/asoundlib.h") == 1)
+    if (MMutil::check_headers("alsa/asoundlib.h","alsa/pcm.h") == 2)
      {
+      warn("Using ALSA driver\n");
       $driver = 'alsa';
       push(@libs,'-lasound');
       last;

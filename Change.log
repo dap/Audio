@@ -1,3 +1,56 @@
+Change 3304 on 2004/06/02 by nick@llama
+
+	Audio-1.029 Release Preparation
+
+Change 3303 on 2004/06/02 by nick@llama
+
+	Audio-1.028 Release Preparation
+
+Change 3302 on 2004/06/02 by nick@llama
+
+	ktext again
+
+Change 3301 on 2004/06/02 by nick@llama
+
+	Audio-1.028 Release Preparation
+
+Change 3300 on 2004/06/02 by nick@llama
+
+	Update version via $Revision$?
+
+Change 3299 on 2004/06/02 by nick@llama
+
+	Audio-1.028 Release Preparation
+
+Change 3298 on 2004/06/02 by nick@llama
+
+	Change version
+
+Change 3116 on 2004/01/06 by nick@llama
+
+	More tidy up of ALSA rate setting debug
+
+Change 3115 on 2004/01/05 by nick@camel
+
+	Fix l2u.c to have prototypes so float is 
+	passed as such.
+
+Change 3114 on 2004/01/05 by nick@camel
+
+	l2u has debug
+
+Change 3113 on 2004/01/05 by nick@camel
+
+	Audio::Data::create had scope issues with temp Audio
+
+Change 3111 on 2004/01/04 by nick@llama
+
+	Automate mkdist more like Tk
+
+Change 3107 on 2004/01/04 by nick@llama
+
+	Audio-1.028 Release Preparation
+
 Change 3106 on 2004/01/04 by nick@llama
 
 	Add Change.log

@@ -422,9 +422,10 @@ PPCODE:
 Audio *
 create(class)
 char *	class
+PREINIT:
+  Audio x;
 CODE:
  {
-  Audio x;
   Zero(&x,1,Audio);
   x.comment = newSV(0);
   x.data    = newSVpv("",0);

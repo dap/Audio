@@ -2,6 +2,8 @@
 #include <perl.h>
 #include <XSUB.h>
 
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
 #include <alsa/asoundlib.h>
 
 /* Nested dynamic loaded extension magic ... */
@@ -35,11 +37,11 @@ audio_statestr(snd_pcm_state_t state)
 
 typedef struct
 {
- UV samp_rate;
+ unsigned int samp_rate;
  snd_pcm_t *pcm;
  snd_pcm_hw_params_t *hwparams;
  float gain;
- size_t chunk;
+ snd_pcm_uframes_t chunk;
 } play_audio_t;
 
 static int
@@ -48,7 +50,8 @@ audio_prepare(play_audio_t *dev)
  if (dev)
   {
    int err;
-   UV  rate;
+   int dir = 0;
+   unsigned int rate = dev->samp_rate;
    snd_pcm_state_t state = snd_pcm_state(dev->pcm);
 #if 0
    warn("%s with state %s",__FUNCTION__,audio_statestr(state));
@@ -72,14 +75,25 @@ audio_prepare(play_audio_t *dev)
      warn("Error setting format %s:%s",pcm_name,snd_strerror(err));
      return(0);
     }
-   rate = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, dev->samp_rate, &err);
-   if (err || rate != dev->samp_rate)
+#ifdef ALSA_PCM_NEW_HW_PARAMS_API
+   err = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, &rate, &dir);
+#else
+   rate = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, dev->samp_rate, &dir);
+#endif
+   if (dir || rate != dev->samp_rate)
     {
      unsigned int num;
      unsigned int den;
-     int err2 = snd_pcm_hw_params_get_rate_numden(dev->hwparams,&num,&den);
-     warn("Wanted %ldHz, got(%d) %ld (%u/%u=%.10gHz",dev->samp_rate,err,
-           rate,num,den,1.0*num/den);
+     if ((err = snd_pcm_hw_params_get_rate_numden(dev->hwparams,&num,&den)) < 0)
+      {
+       warn("Cannot get exact rate (%s) using %d", snd_strerror(err), rate);
+      }
+     else
+      {
+       warn("Wanted %ldHz, got(%d) %ld (%u/%u=%.10gHz",dev->samp_rate,dir,
+             rate,num,den,1.0*num/den);
+
+      }
      dev->samp_rate = rate;
     }
    if ((err=snd_pcm_hw_params_set_channels(dev->pcm, dev->hwparams, 1)) < 0)
@@ -94,7 +108,11 @@ audio_prepare(play_audio_t *dev)
      warn("Error setting parameters %s:%s",pcm_name,snd_strerror(err));
      return(0);
     }
+#ifdef ALSA_PCM_NEW_HW_PARAMS_API
+   err = snd_pcm_hw_params_get_buffer_size (dev->hwparams, &dev->chunk);
+#else
    dev->chunk = snd_pcm_hw_params_get_buffer_size (dev->hwparams);
+#endif
    state = snd_pcm_state(dev->pcm);
 #if 0
    warn("prepared now state %s",audio_statestr(state));
@@ -180,11 +198,12 @@ audio_close(play_audio_t *dev)
 
 UV
 audio_rate(play_audio_t *dev, UV rate)
-{IV old = dev->samp_rate;
+{unsigned int old = dev->samp_rate;
  if (rate && rate != dev->samp_rate)
   {
    snd_pcm_state_t state;
-   int err = 0;
+   int dir = 0;
+   int err;
    audio_flush(dev);
    switch ((state = snd_pcm_state(dev->pcm)))
     {
@@ -208,14 +227,27 @@ audio_rate(play_audio_t *dev, UV rate)
 #if 0
    warn("%s with state %s",__FUNCTION__,audio_statestr(state));
 #endif
-   dev->samp_rate = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, rate, &err);
-   if (err || rate != dev->samp_rate)
+
+#ifdef ALSA_PCM_NEW_HW_PARAMS_API
+   dev->samp_rate = rate;
+   err = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, &dev->samp_rate, &dir);
+#else
+   dev->samp_rate = snd_pcm_hw_params_set_rate_near(dev->pcm, dev->hwparams, rate, &dir);
+#endif
+   if (dir || rate != dev->samp_rate)
     {
      unsigned int num;
      unsigned int den;
-     int err2 = snd_pcm_hw_params_get_rate_numden(dev->hwparams,&num,&den);
-     warn("Wanted %ldHz, got(%d) %ld (%u/%u=%.10gHz",rate,err,
-           dev->samp_rate,num,den,1.0*num/den);
+     if ((err = snd_pcm_hw_params_get_rate_numden(dev->hwparams,&num,&den)) < 0)
+      {
+       warn("Cannot get exact rate (%s) using %d", snd_strerror(err), dev->samp_rate);
+      }
+     else
+      {
+       warn("Wanted %ldHz, got(%d) %ld (%u/%u=%.10gHz",rate,dir,
+             dev->samp_rate,num,den,1.0*num/den);
+
+      }
     }
   }
  return old;
